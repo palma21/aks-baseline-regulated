@@ -93,7 +93,7 @@ stages:
       condition: always()
       inputs:
         azureSubscription: 'Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)'
-        scriptType: batch
+        scriptType: ps
         scriptLocation: inlineScript
         inlineScript: |
           az group create --name validation-mspnp-aks-baseline-regulated-$(Build.BuildId) --location centralus
