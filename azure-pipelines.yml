@@ -21,7 +21,8 @@ parameters:
   - networking/hub-region.v2.json
   - networking/spoke-BU0001A0005-00.json
   - networking/spoke-BU0001A0005-01.json
-  - cluster-stamp.json,cluster-stamp.v2.json
+  - cluster-stamp.json
+  - cluster-stamp.v2.json
 
 trigger:
   branches:
@@ -54,6 +55,7 @@ stages:
           targetType: inline
           script: |
             git clone https://github.com/Azure/arm-ttk.git $env:PIPELINE_WORKSPACE\arm-ttk
+            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
       - task: PowerShell@2
         displayName: Install Pester
         inputs:
@@ -63,15 +65,15 @@ stages:
             Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
       - ${{ each armTemplatePath in parameters.armTemplatePaths }}:
         - task: PowerShell@2
+          condition: always()
           displayName: Execute ARM TTK on ${{armTemplatePath}}
           inputs:
             targetType: inline
             script: |
-              Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
-              #Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
               $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "${{armTemplatePath}}"; Skip=""}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
               if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
-            errorActionPreference: continue
+              #Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
+              #Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
       - task: PublishTestResults@2
         condition: always()
         displayName: Publish ARM TTK Results
