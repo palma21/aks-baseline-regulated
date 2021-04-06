@@ -33,7 +33,7 @@ pool:
 
 stages:
 - stage: ARMValidation
-  condition: never()
+  condition: eq(false, true)
   displayName: ARM Asset Validation
   jobs:
   - job: armttk
