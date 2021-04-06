@@ -70,7 +70,7 @@ stages:
               Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
               #$counter = 1
               #"$(csvTemplates)".split(",") | ForEach {
-              $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = ${{armTemplatePath}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
+              $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "${{armTemplatePath}}"; Skip=""}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
                 #$counter += 1
                 #if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
               #}
