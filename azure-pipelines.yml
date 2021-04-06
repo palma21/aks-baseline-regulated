@@ -60,24 +60,22 @@ stages:
           targetType: inline
           script: |
             Install-Module Pester -AllowClobber -RequiredVersion $(PesterVersion) -Force -SkipPublisherCheck -AcceptLicense -Scope CurrentUser
+            Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
       - ${{ each armTemplatePath in parameters.armTemplatePaths }}:
         - task: PowerShell@2
           displayName: Execute ARM TTK on ${{armTemplatePath}}
           inputs:
             targetType: inline
             script: |
-              Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
               Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
-              #$counter = 1
-              #"$(csvTemplates)".split(",") | ForEach {
+              #Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
               $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "${{armTemplatePath}}"; Skip=""}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
-                #$counter += 1
-                #if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
-              #}
+              if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
+            errorActionPreference: continue
       - task: PublishTestResults@2
+        condition: always()
         displayName: Publish ARM TTK Results
         inputs:
           testResultsFormat: NUnit
           mergeTestResults: true
           testResultsFiles: '*-ARMTemplate.xml'
-        condition: always()
