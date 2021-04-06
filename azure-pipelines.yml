@@ -91,9 +91,9 @@ stages:
         azureResourceManagerConnection: Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)
         subscriptionId: a012a8b0-522a-4f59-81b6-aa0361eb9387
         action: Create Or Update Resource Group
-        resourceGroupName: validation-mspnp-aks-baseline-regulated-${{Build.BuildId}}
+        resourceGroupName: validation-mspnp-aks-baseline-regulated-$(Build.BuildId)
         location: 'East US 2'
         csmFile: 'networking/hub-region.v0.json'
         overrideParameters: –location eastus2
         deploymentMode: Validation
-        deploymentName: validation-mspnp-aks-baseline-regulated-${{Build.BuildId}}
+        deploymentName: validation-mspnp-aks-baseline-regulated-$(Build.BuildId)
