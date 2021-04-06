@@ -13,7 +13,7 @@ variables:
 
 parameters:
 - name: armTemplatePaths
-  type: string
+  type: object
   default:
   - subscription.json
   - networking/hub-region.v0.json
