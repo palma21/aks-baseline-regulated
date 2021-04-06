@@ -53,8 +53,8 @@ stages:
           script: |
             Import-Module Pester -RequiredVersion $(PesterVersion) -Verbose -ErrorAction Stop
             Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -Verbose -ErrorAction Stop
-            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile subscription-ARMTemplate.xml -PassThru
-            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile subscription2-ARMTemplate.xml -PassThru
+            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription.json"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile subscription-ARMTemplate.xml -PassThru
+            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription.json"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile subscription2-ARMTemplate.xml -PassThru
       - task: PublishTestResults@2
         inputs:
           testResultsFormat: NUnit
