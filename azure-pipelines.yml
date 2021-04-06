@@ -4,11 +4,10 @@
 # https://aka.ms/yaml
 
 variables:
-- name: System.Debug
-  value: false
 - name: PesterVersion
   value: 4.10.1
-
+- name: rgHub
+  value: validation-mspnp-aks-baseline-regulated-$(Build.BuildId)
 
 parameters:
 - name: armTemplatePaths
@@ -23,7 +22,7 @@ parameters:
   - cluster-stamp.json
   - cluster-stamp.v2.json
 
-trigger:
+pr:
   branches:
     include:
     - main
@@ -33,7 +32,6 @@ pool:
 
 stages:
 - stage: ARMValidation
-  condition: eq(false, true)
   displayName: ARM Asset Validation
   jobs:
   - job: armttk
@@ -56,6 +54,7 @@ stages:
         script: |
           git clone https://github.com/Azure/arm-ttk.git $env:PIPELINE_WORKSPACE\arm-ttk
     - task: PowerShell@2
+      name: InstallPester
       displayName: Install Pester
       inputs:
         targetType: inline
@@ -64,7 +63,6 @@ stages:
           Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
     - ${{ each armTemplatePath in parameters.armTemplatePaths }}:
       - task: PowerShell@2
-        condition: always()
         displayName: Execute ARM TTK on ${{armTemplatePath}}
         inputs:
           targetType: inline
@@ -73,42 +71,45 @@ stages:
             $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "${{armTemplatePath}}"; Skip=""}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
             if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
     - task: PublishTestResults@2
-      condition: always()
+      condition: succeededOrFailed()
       displayName: Publish ARM TTK Results
       inputs:
         testResultsFormat: NUnit
         mergeTestResults: true
         testResultsFiles: '*-ARMTemplate.xml'
 - stage: DeploymentValidation
-  condition: always()
   displayName: Deployment Validation
   jobs:
-  - job: default
+  - job: DeployHub
+    displayName: Deploy Hub to Azure
     continueOnError: false
     timeoutInMinutes: 4
-    pool:
-      vmImage: 'windows-latest'
     steps:
     - task: AzureCLI@2
-      condition: always()
+      name: DeployHubRg
+      displayName: Deploy Hub Resource Group
       inputs:
         azureSubscription: 'Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)'
         scriptType: ps
         scriptLocation: inlineScript
         inlineScript: |
-          az group create --name validation-mspnp-aks-baseline-regulated-$(Build.BuildId) --location centralus
-          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v0.json -p location=eastus2
-          # az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/spoke-BU0001A0005-00.json -p location=eastus2 hubVnetResourceId='/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-enterprise-networking-hubs/providers/Microsoft.Network/virtualNetworks/vnet-eastus2-hub'
-          # az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v1.json -p location=eastus2 aksImageBuilderSubnetResourceId='/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-enterprise-networking-spokes/providers/Microsoft.Network/virtualNetworks/vnet'
-          # az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/spoke-BU0001A0005-01.json -p location=eastus2 hubVnetResourceId='/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-enterprise-networking-hubs/providers/Microsoft.Network/virtualNetworks/vnet-eastus2-hub'
-          # az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v2.json -p location=eastus2 aksImageBuilderSubnetResourceId='/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-enterprise-networking-spokes/providers/Microsoft.Network/virtualNetworks/vnet' nodepoolSubnetResourceIds='[]' aksJumpboxSubnetResourceId='/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnet'
-          # az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f cluster-stamp.json -p location=eastus2 targetVnetResourceId='/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet' clusterAdminAadGroupObjectId='' k8sControlPlaneAuthorizationTenantId='' appGatewayListenerCertificate='' aksIngressControllerCertificate='' jumpBoxImageResourceId='' jumpBoxCloudInitAsBase64=''
-          # az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f cluster-stamp.v2.json -p location=eastus2 targetVnetResourceId="/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet" clusterAdminAadGroupObjectId="" k8sControlPlaneAuthorizationTenantId="" appGatewayListenerCertificate="" aksIngressControllerCertificate="" jumpBoxImageResourceId="" jumpBoxCloudInitAsBase64=''
+          az group create --name ${{rgHub}} --location centralus
+    - task: AzureCLI@2
+      name: ValidateHub
+      displayName: Validate Hub (v0)
+      inputs:
+        azureSubscription: 'Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)'
+        scriptType: ps
+        scriptLocation: inlineScript
+        inlineScript: |
+          az deployment group validate -g ${{rgHub}} -f networking/hub-region.v0.json -p location=eastus2
     - task: AzureCLI@2
       condition: always()
+      name: DeleteHubRg
+      displayName: Delete Hub Resource Group
       inputs:
         azureSubscription: 'Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)'
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
-          az group delete --resource-group validation-mspnp-aks-baseline-regulated-$(Build.BuildId) --yes --no-wait
+          az group delete --resource-group ${{rgHub}} --yes --no-wait
