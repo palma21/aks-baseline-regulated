@@ -78,17 +78,6 @@ stages:
         testResultsFormat: NUnit
         mergeTestResults: true
         testResultsFiles: '*-ARMTemplate.xml'
-  - job: armory
-    displayName: Run Armory
-    condition: always()
-    pool:
-      vmImage: 'windows-latest'
-    steps:
-      - task: Armory@2
-        condition: always()
-        inputs:
-          targetDirectory: '$(Build.SourcesDirectory)'
-          targetFiles: 'f|**\*.json;-|.gdn\**;'
 - stage: DeploymentValidation
   condition: always()
   displayName: Deployment Validation
@@ -106,4 +95,13 @@ stages:
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
+          az group create --name validation-mspnp-aks-baseline-regulated-$(Build.BuildId) --location centralus
           az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v0.json -p location=eastus2
+    - task: AzureCLI@2
+      condition: always()
+      inputs:
+        azureSubscription: 'Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az group delete --resource-group validation-mspnp-aks-baseline-regulated-$(Build.BuildId) --yes --no-wait
