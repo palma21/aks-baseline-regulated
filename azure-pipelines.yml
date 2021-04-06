@@ -78,6 +78,11 @@ stages:
         testResultsFormat: NUnit
         mergeTestResults: true
         testResultsFiles: '*-ARMTemplate.xml'
+    - task: Armory@2
+      condition: always()
+      inputs:
+        targetDirectory: '$(Build.SourcesDirectory)'
+        targetFiles: 'f|**\*.json;-|.gdn\**;'
 - stage: DeploymentValidation
   condition: always()
   displayName: Deployment Validation
@@ -88,16 +93,11 @@ stages:
     pool:
       vmImage: 'windows-latest'
     steps:
-    - task: AzureResourceManagerTemplateDeployment@3
+    - task: AzureCLI@2
       condition: always()
       inputs:
-        deploymentScope: Resource Group
-        azureResourceManagerConnection: Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)
-        subscriptionId: a012a8b0-522a-4f59-81b6-aa0361eb9387
-        action: Create Or Update Resource Group
-        resourceGroupName: validation-mspnp-aks-baseline-regulated-$(Build.BuildId)
-        location: 'East US 2'
-        csmFile: 'networking/hub-region.v0.json'
-        overrideParameters: –location eastus2
-        deploymentMode: Validation
-        deploymentName: validation-mspnp-aks-baseline-regulated-$(Build.BuildId)
+        azureSubscription: 'Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v0.json -p location=eastus2
