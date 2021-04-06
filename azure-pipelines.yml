@@ -4,16 +4,51 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+  branches:
+    include:
+    - main
 
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+stages:
+- stage: armTemplateToolkit
+  jobs:
+    - job: armttk
+      pool:
+        vmImage: 'windows-latest'
+      continueOnError: false
+      timeoutInMinutes: 4
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+      steps:
+      - task: PowerShell@2
+        displayName: Install ARM TTK
+        inputs:
+          targetType: 'inline'
+          script: |
+            git clone https://github.com/Azure/arm-ttk.git --quiet $env:PIPELINE_WORKSPACE
+            import-module $env:PIPELINE_WORKSPACE\arm-ttk
+      - task: PowerShell@2
+        displayName: Install Pester
+        inputs:
+          targetType: 'inline'
+          script: |
+            Install-Module Pester -AllowClobber -RequiredVersion 4.10.1 -Force -SkipPublisherCheck -AcceptLicense
+            Import-Module Pester -RequiredVersion 4.10.1 -ErrorAction Stop
+          
+      - task: PowerShell@2
+        displayName: Execute ARM-TTK & Pester
+        inputs:
+          targetType: 'inline'
+          script: |
+            Install-Module Pester -AllowClobber -RequiredVersion 4.10.1 -Force -SkipPublisherCheck -AcceptLicense
+            Import-Module Pester -RequiredVersion 4.10.1 -ErrorAction Stop
+
+            $results = Invoke-Pester -Script @{Path = "$(System.DefaultWorkingDirectory)$(pester-script-location)"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)$(template-location)$(template-name)"; Skip = "$(ttk-skip-test)"}} -OutputFormat NUnitXml -OutputFile TEST-ARMTemplate.xml -PassThru
+            if ($results.TestResult.Result -contains "Failed") {Write-Error -Message "Test Failed"}
+      
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: 'NUnit'
+          testResultsFiles: TEST-ARMTemplate.xml
+        condition: always()
