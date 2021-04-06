@@ -96,4 +96,4 @@ stages:
         csmFile: 'networking/hub-region.v0.json'
         overrideParameters: –location eastus2
         deploymentMode: Validation
-        deploymentName: validation-mspnp-aks-baseline-regulated-$(Build.BuildId)
+        deploymentName: validation-mspnp-aks-baseline-regulated-${{Build.BuildId}}
