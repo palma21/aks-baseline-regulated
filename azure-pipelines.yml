@@ -9,6 +9,7 @@ variables:
 - name: PesterVersion
   value: 4.10.1
 
+
 parameters:
 - name: armTemplatePaths
   type: object
@@ -83,3 +84,16 @@ stages:
   - job: default
     continueOnError: false
     timeoutInMinutes: 4
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      inputs:
+        deploymentScope: Resource Group
+        azureResourceManagerConnection: Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)
+        subscriptionId: a012a8b0-522a-4f59-81b6-aa0361eb9387
+        action: Create Or Update Resource Group
+        resourceGroupName: validation-mspnp-aks-baseline-regulated-${{Build.BuildId}}
+        location: 'East US 2'
+        csmFile: 'networking/hub-region.v0.json'
+        overrideParameters: –location eastus2
+        deploymentMode: Validation
+        deploymentName: validation-mspnp-aks-baseline-regulated-$(Build.BuildId)
