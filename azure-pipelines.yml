@@ -93,7 +93,7 @@ stages:
         scriptType: ps
         scriptLocation: inlineScript
         inlineScript: |
-          az group create --name ${{rgHub}} --location centralus
+          az group create --name $env:RGHUB --location centralus
     - task: AzureCLI@2
       name: ValidateHub
       displayName: Validate Hub (v0)
@@ -102,7 +102,7 @@ stages:
         scriptType: ps
         scriptLocation: inlineScript
         inlineScript: |
-          az deployment group validate -g ${{rgHub}} -f networking/hub-region.v0.json -p location=eastus2
+          az deployment group validate -g $env:RGHUB -f networking/hub-region.v0.json -p location=eastus2
     - task: AzureCLI@2
       condition: always()
       name: DeleteHubRg
@@ -112,4 +112,4 @@ stages:
         scriptType: bash
         scriptLocation: inlineScript
         inlineScript: |
-          az group delete --resource-group ${{rgHub}} --yes --no-wait
+          az group delete --resource-group $env:RGHUB --yes --no-wait
