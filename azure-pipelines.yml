@@ -11,6 +11,18 @@ variables:
 - name: csvTemplates
   value: subscription.json,networking/hub-region.v0.json,networking/hub-region.v1.json,networking/hub-region.v2.json,networking/spoke-BU0001A0005-00.json,networking/spoke-BU0001A0005-01.json,cluster-stamp.json,cluster-stamp.v2.json
 
+parameters:
+- name: armTemplatePaths
+  type: string
+  default:
+  - subscription.json
+  - networking/hub-region.v0.json
+  - networking/hub-region.v1.json
+  - networking/hub-region.v2.json
+  - networking/spoke-BU0001A0005-00.json
+  - networking/spoke-BU0001A0005-01.json
+  - cluster-stamp.json,cluster-stamp.v2.json
+
 trigger:
   branches:
     include:
@@ -20,7 +32,7 @@ pool:
   vmImage: ubuntu-latest
 
 stages:
-- stage: armTemplateToolkit
+- stage: ARMValidation
   displayName: Validate ARM Assets
   jobs:
     - job: armttk
@@ -48,20 +60,22 @@ stages:
           targetType: inline
           script: |
             Install-Module Pester -AllowClobber -RequiredVersion $(PesterVersion) -Force -SkipPublisherCheck -AcceptLicense -Scope CurrentUser
-      - task: PowerShell@2
-        displayName: Execute ARM-TTK & Pester
-        inputs:
-          targetType: inline
-          script: |
-            Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
-            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
-            $counter = 1
-            "$(csvTemplates)".split(",") | ForEach {
-              $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$_"; Skip = ""}} -OutputFormat NUnitXml -OutputFile $("{0:000}-ARMTemplate.xml" -f $counter) -PassThru
-              $counter += 1
-              if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
-            }
+      - ${{ each armTemplatePath in parameters.armTemplatePaths }}:
+        - task: PowerShell@2
+          displayName: Execute ARM TTK on ${{armTemplatePath}}
+          inputs:
+            targetType: inline
+            script: |
+              Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
+              Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
+              #$counter = 1
+              #"$(csvTemplates)".split(",") | ForEach {
+              $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = ${{armTemplatePath}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
+                #$counter += 1
+                #if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
+              #}
       - task: PublishTestResults@2
+        displayName: Publish ARM TTK Results
         inputs:
           testResultsFormat: NUnit
           mergeTestResults: true
