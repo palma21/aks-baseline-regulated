@@ -53,8 +53,9 @@ stages:
           script: |
             Import-Module Pester -RequiredVersion $(PesterVersion) -Verbose -ErrorAction Stop
             Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -Verbose -ErrorAction Stop
-            $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription.json"; Skip = ""}} -OutputFormat NUnitXml -OutputFile TEST-ARMTemplate.xml -PassThru
-            if ($results.TestResult.Result -contains "Failed") {Write-Error -Message "Test Failed"}      
+            Test-AzTemplate -TemplatePath $(System.DefaultWorkingDirectory) -Files subscription.json,subscription.json
+            #$results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile TEST-ARMTemplate.xml -PassThru
+            #if ($results.TestResult.Result -contains "Failed") {Write-Error -Message "Test Failed"}      
       - task: PublishTestResults@2
         inputs:
           testResultsFormat: NUnit
