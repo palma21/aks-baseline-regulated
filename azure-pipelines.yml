@@ -3,6 +3,10 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
+variables:
+- name: System.Debug
+  value: true
+
 trigger:
   branches:
     include:
@@ -26,8 +30,8 @@ stages:
         inputs:
           targetType: 'inline'
           script: |
-            git clone https://github.com/Azure/arm-ttk.git --quiet $env:PIPELINE_WORKSPACE
-            import-module $env:PIPELINE_WORKSPACE\arm-ttk
+            git clone https://github.com/Azure/arm-ttk.git --quiet $env:PIPELINE_WORKSPACE\arm-ttk
+            import-module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk
       - task: PowerShell@2
         displayName: Install Pester
         inputs:
