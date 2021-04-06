@@ -40,7 +40,7 @@ stages:
           targetType: 'inline'
           script: |
             git clone https://github.com/Azure/arm-ttk.git --quiet $env:PIPELINE_WORKSPACE\arm-ttk
-            import-module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk
+            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk.psd1 -Verbose
       - task: PowerShell@2
         displayName: Install Pester
         inputs:
