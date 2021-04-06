@@ -32,7 +32,7 @@ stages:
         inputs:
           targetType: 'inline'
           script: |
-            Invoke-RestMethod -Uri https://raw.githubusercontent.com/mspnp/samples/master/tests/Test.ARMTemplate.ps1 -OutFile $env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1
+            Invoke-RestMethod -Uri https://raw.githubusercontent.com/mspnp/samples/master/tests/Test.ARMTemplate.ps1 -OutFile (New-Item -Path "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1" -Force)
       - task: PowerShell@2
         displayName: Install ARM TTK
         inputs:
