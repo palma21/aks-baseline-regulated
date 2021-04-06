@@ -40,19 +40,19 @@ stages:
           targetType: inline
           script: |
             git clone https://github.com/Azure/arm-ttk.git $env:PIPELINE_WORKSPACE\arm-ttk
-            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -Verbose -Scope CurrentUser
       - task: PowerShell@2
         displayName: Install Pester
         inputs:
           targetType: inline
           script: |
             Install-Module Pester -AllowClobber -RequiredVersion $(PesterVersion) -Force -SkipPublisherCheck -AcceptLicense -Scope CurrentUser
-            Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop -Scope CurrentUser
       - task: PowerShell@2
         displayName: Execute ARM-TTK & Pester
         inputs:
           targetType: inline
           script: |
+            Import-Module Pester -RequiredVersion $(PesterVersion) -Verbose -ErrorAction Stop
+            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -Verbose -ErrorAction Stop
             $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription.json"; Skip = ""}} -OutputFormat NUnitXml -OutputFile TEST-ARMTemplate.xml -PassThru
             if ($results.TestResult.Result -contains "Failed") {Write-Error -Message "Test Failed"}      
       - task: PublishTestResults@2
