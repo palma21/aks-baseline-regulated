@@ -55,7 +55,6 @@ stages:
           targetType: inline
           script: |
             git clone https://github.com/Azure/arm-ttk.git $env:PIPELINE_WORKSPACE\arm-ttk
-            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
       - task: PowerShell@2
         displayName: Install Pester
         inputs:
@@ -70,10 +69,9 @@ stages:
           inputs:
             targetType: inline
             script: |
+              Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
               $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "${{armTemplatePath}}"; Skip=""}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
               if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
-              #Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
-              #Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
       - task: PublishTestResults@2
         condition: always()
         displayName: Publish ARM TTK Results
