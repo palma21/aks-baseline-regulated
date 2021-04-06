@@ -78,11 +78,17 @@ stages:
         testResultsFormat: NUnit
         mergeTestResults: true
         testResultsFiles: '*-ARMTemplate.xml'
-    - task: Armory@2
-      condition: always()
-      inputs:
-        targetDirectory: '$(Build.SourcesDirectory)'
-        targetFiles: 'f|**\*.json;-|.gdn\**;'
+  - job: armory
+    displayName: Run Armory
+    condition: always()
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+      - task: Armory@2
+        condition: always()
+        inputs:
+          targetDirectory: '$(Build.SourcesDirectory)'
+          targetFiles: 'f|**\*.json;-|.gdn\**;'
 - stage: DeploymentValidation
   condition: always()
   displayName: Deployment Validation
