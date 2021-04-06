@@ -31,7 +31,7 @@ stages:
       - task: PowerShell@2
         displayName: Download Pester Test Runner
         inputs:
-          targetType: 'inline'
+          targetType: inline
           script: |
             Invoke-RestMethod -Uri https://raw.githubusercontent.com/mspnp/samples/master/tests/Test.ARMTemplate.ps1 -OutFile (New-Item -Path "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1" -Force)
       - task: PowerShell@2
@@ -53,11 +53,11 @@ stages:
           script: |
             Import-Module Pester -RequiredVersion $(PesterVersion) -Verbose -ErrorAction Stop
             Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -Verbose -ErrorAction Stop
-            Test-AzTemplate -TemplatePath $(System.DefaultWorkingDirectory) -Files subscription.json,subscription.json
-            #$results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile TEST-ARMTemplate.xml -PassThru
-            #if ($results.TestResult.Result -contains "Failed") {Write-Error -Message "Test Failed"}      
+            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile subscription-ARMTemplate.xml -PassThru
+            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription"; FilesSkip = ""}} -OutputFormat NUnitXml -OutputFile subscription2-ARMTemplate.xml -PassThru
       - task: PublishTestResults@2
         inputs:
           testResultsFormat: NUnit
-          testResultsFiles: TEST-ARMTemplate.xml
+          mergeTestResults: true
+          testResultsFiles: '*-ARMTemplate.xml'
         condition: always()
