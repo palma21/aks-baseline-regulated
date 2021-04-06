@@ -8,6 +8,8 @@ variables:
   value: true
 - name: PesterVersion
   value: 4.10.1
+- name: csvTemplates
+  value: subscription.json,networking/hub-region.v0.json,networking/hub-region.v1.json,networking/hub-region.v2.json,networking/spoke-BU0001A0005-00.json,networking/spoke-BU0001A0005-01.json,cluster-stamp.json,cluster-stamp.v2.json
 
 trigger:
   branches:
@@ -22,7 +24,7 @@ stages:
   displayName: Validate ARM Assets
   jobs:
     - job: armttk
-      displayName: Validate ARM Assets
+      displayName: Run ARM TTK
       pool:
         vmImage: 'windows-latest'
       continueOnError: false
@@ -51,10 +53,13 @@ stages:
         inputs:
           targetType: inline
           script: |
-            Import-Module Pester -RequiredVersion $(PesterVersion) -Verbose -ErrorAction Stop
-            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -Verbose -ErrorAction Stop
-            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription.json"; Skip = ""}} -OutputFormat NUnitXml -OutputFile subscription-ARMTemplate.xml -PassThru
-            Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$(System.DefaultWorkingDirectory)\subscription.json"; Skip = ""}} -OutputFormat NUnitXml -OutputFile subscription2-ARMTemplate.xml -PassThru
+            Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
+            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
+            $counter = 1
+            "$(csvTemplates)".split(",") | ForEach {
+              Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "$_"; Skip = ""}} -OutputFormat NUnitXml -OutputFile ($counter + "-ARMTemplate.xml") -PassThru
+              $counter += 1
+            }
       - task: PublishTestResults@2
         inputs:
           testResultsFormat: NUnit
