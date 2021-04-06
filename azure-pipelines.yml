@@ -33,6 +33,7 @@ pool:
 
 stages:
 - stage: ARMValidation
+  condition: (1=0)
   displayName: ARM Asset Validation
   jobs:
   - job: armttk
@@ -97,12 +98,12 @@ stages:
         inlineScript: |
           az group create --name validation-mspnp-aks-baseline-regulated-$(Build.BuildId) --location centralus
           az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v0.json -p location=eastus2
-          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v1.json -p location=eastus2
-          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v2.json -p location=eastus2
-          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/spoke-BU0001A0005-00.json -p location=eastus2
-          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/spoke-BU0001A0005-01.json -p location=eastus2
-          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f cluster-stamp.json -p location=eastus2
-          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f cluster-stamp.v2.json -p location=eastus2
+          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/spoke-BU0001A0005-00.json -p location=eastus2 hubVnetResourceId=""
+          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v1.json -p location=eastus2 aksImageBuilderSubnetResourceId=""
+          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/spoke-BU0001A0005-01.json -p location=eastus2 hubVnetResourceId=""
+          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f networking/hub-region.v2.json -p location=eastus2 aksImageBuilderSubnetResourceId="" nodepoolSubnetResourceIds="[]" aksJumpboxSubnetResourceId=""
+          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f cluster-stamp.json -p location=eastus2 targetVnetResourceId="" clusterAdminAadGroupObjectId="" k8sControlPlaneAuthorizationTenantId="" appGatewayListenerCertificate="" aksIngressControllerCertificate="" jumpBoxImageResourceId="" jumpBoxCloudInitAsBase64=""
+          az deployment group validate -g validation-mspnp-aks-baseline-regulated-$(Build.BuildId) -f cluster-stamp.v2.json -p location=eastus2 targetVnetResourceId="" clusterAdminAadGroupObjectId="" k8sControlPlaneAuthorizationTenantId="" appGatewayListenerCertificate="" aksIngressControllerCertificate="" jumpBoxImageResourceId="" jumpBoxCloudInitAsBase64=""
     - task: AzureCLI@2
       condition: always()
       inputs:
