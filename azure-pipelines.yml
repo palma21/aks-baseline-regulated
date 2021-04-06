@@ -79,6 +79,7 @@ stages:
         mergeTestResults: true
         testResultsFiles: '*-ARMTemplate.xml'
 - stage: DeploymentValidation
+  condition: always()
   displayName: Deployment Validation
   jobs:
   - job: default
@@ -86,6 +87,7 @@ stages:
     timeoutInMinutes: 4
     steps:
     - task: AzureResourceManagerTemplateDeployment@3
+      condition: always()
       inputs:
         deploymentScope: Resource Group
         azureResourceManagerConnection: Pnp Dev One (a012a8b0-522a-4f59-81b6-aa0361eb9387)
