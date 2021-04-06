@@ -85,6 +85,8 @@ stages:
   - job: default
     continueOnError: false
     timeoutInMinutes: 4
+    pool:
+      vmImage: 'windows-latest'
     steps:
     - task: AzureResourceManagerTemplateDeployment@3
       condition: always()
