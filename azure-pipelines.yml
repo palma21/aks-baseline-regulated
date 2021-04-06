@@ -8,8 +8,6 @@ variables:
   value: true
 - name: PesterVersion
   value: 4.10.1
-- name: csvTemplates
-  value: subscription.json,networking/hub-region.v0.json,networking/hub-region.v1.json,networking/hub-region.v2.json,networking/spoke-BU0001A0005-00.json,networking/spoke-BU0001A0005-01.json,cluster-stamp.json,cluster-stamp.v2.json
 
 parameters:
 - name: armTemplatePaths
@@ -34,48 +32,54 @@ pool:
 
 stages:
 - stage: ARMValidation
-  displayName: Validate ARM Assets
+  displayName: ARM Asset Validation
   jobs:
-    - job: armttk
-      displayName: Run ARM TTK
-      pool:
-        vmImage: 'windows-latest'
-      continueOnError: false
-      timeoutInMinutes: 4
-      steps:
+  - job: armttk
+    displayName: Run ARM TTK
+    pool:
+      vmImage: 'windows-latest'
+    continueOnError: false
+    timeoutInMinutes: 4
+    steps:
+    - task: PowerShell@2
+      displayName: Download Test Runner Script
+      inputs:
+        targetType: inline
+        script: |
+          Invoke-RestMethod -Uri https://raw.githubusercontent.com/mspnp/samples/master/tests/Test.ARMTemplate.ps1 -OutFile (New-Item -Path "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1" -Force)
+    - task: PowerShell@2
+      displayName: Install ARM TTK
+      inputs:
+        targetType: inline
+        script: |
+          git clone https://github.com/Azure/arm-ttk.git $env:PIPELINE_WORKSPACE\arm-ttk
+    - task: PowerShell@2
+      displayName: Install Pester
+      inputs:
+        targetType: inline
+        script: |
+          Install-Module Pester -AllowClobber -RequiredVersion $(PesterVersion) -Force -SkipPublisherCheck -AcceptLicense -Scope CurrentUser
+          Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
+    - ${{ each armTemplatePath in parameters.armTemplatePaths }}:
       - task: PowerShell@2
-        displayName: Download Pester Test Runner
-        inputs:
-          targetType: inline
-          script: |
-            Invoke-RestMethod -Uri https://raw.githubusercontent.com/mspnp/samples/master/tests/Test.ARMTemplate.ps1 -OutFile (New-Item -Path "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1" -Force)
-      - task: PowerShell@2
-        displayName: Install ARM TTK
-        inputs:
-          targetType: inline
-          script: |
-            git clone https://github.com/Azure/arm-ttk.git $env:PIPELINE_WORKSPACE\arm-ttk
-      - task: PowerShell@2
-        displayName: Install Pester
-        inputs:
-          targetType: inline
-          script: |
-            Install-Module Pester -AllowClobber -RequiredVersion $(PesterVersion) -Force -SkipPublisherCheck -AcceptLicense -Scope CurrentUser
-            Import-Module Pester -RequiredVersion $(PesterVersion) -ErrorAction Stop
-      - ${{ each armTemplatePath in parameters.armTemplatePaths }}:
-        - task: PowerShell@2
-          condition: always()
-          displayName: Execute ARM TTK on ${{armTemplatePath}}
-          inputs:
-            targetType: inline
-            script: |
-              Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
-              $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "${{armTemplatePath}}"; Skip=""}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
-              if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
-      - task: PublishTestResults@2
         condition: always()
-        displayName: Publish ARM TTK Results
+        displayName: Execute ARM TTK on ${{armTemplatePath}}
         inputs:
-          testResultsFormat: NUnit
-          mergeTestResults: true
-          testResultsFiles: '*-ARMTemplate.xml'
+          targetType: inline
+          script: |
+            Import-Module $env:PIPELINE_WORKSPACE\arm-ttk\arm-ttk\arm-ttk.psd1 -ErrorAction Stop
+            $results = Invoke-Pester -Script @{Path = "$env:PIPELINE_WORKSPACE\tests\Test.ARMTemplate.ps1"; Parameters = @{TemplatePath = "${{armTemplatePath}}"; Skip=""}} -OutputFormat NUnitXml -OutputFile $("{0}-ARMTemplate.xml" -f [System.IO.Path]::GetRandomFileName()) -PassThru
+            if ($results.TestResult.Result -contains "Failed") {Write-Error -Message $("Test failed for {0}." -f $_)}
+    - task: PublishTestResults@2
+      condition: always()
+      displayName: Publish ARM TTK Results
+      inputs:
+        testResultsFormat: NUnit
+        mergeTestResults: true
+        testResultsFiles: '*-ARMTemplate.xml'
+- stage: DeploymentValidation
+  displayName: Deployment Validation
+  jobs:
+  - job: default
+    continueOnError: false
+    timeoutInMinutes: 4
